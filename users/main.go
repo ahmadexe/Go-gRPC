@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"log"
 	"net"
 	"time"
@@ -63,4 +65,30 @@ func (s *userServiceServer) StreamAllUsers(in *pb.NoParam, stream pb.UserService
 	}
 
 	return nil
+}
+
+func (s *userServiceServer) FetchStreamResponse(stream pb.UserService_FetchStreamResponseServer) error {
+	var users []data.User
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			grpcUsers := make([]*pb.UserResponse, 0, len(users))
+			for _, user := range users {
+				grpcUsers = append(grpcUsers, &pb.UserResponse{Id: user.Id, Name: user.Name, Age: user.Age})
+			}
+			return stream.SendAndClose(&pb.UserList{Users: grpcUsers})
+		}
+		if err != nil {
+			return err
+		}
+
+		for _, user := range usersSlice {
+			if user.Id == req.Id {
+				fmt.Printf("This is user %v\n", user)
+				users = append(users, user)
+			}
+		}
+		
+	}
 }

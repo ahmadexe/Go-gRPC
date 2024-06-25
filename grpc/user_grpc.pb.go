@@ -95,7 +95,7 @@ func (c *userServiceClient) FetchStreamResponse(ctx context.Context, opts ...grp
 
 type UserService_FetchStreamResponseClient interface {
 	Send(*UserRequest) error
-	CloseAndRecv() (*UserResponse, error)
+	CloseAndRecv() (*UserList, error)
 	grpc.ClientStream
 }
 
@@ -107,11 +107,11 @@ func (x *userServiceFetchStreamResponseClient) Send(m *UserRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *userServiceFetchStreamResponseClient) CloseAndRecv() (*UserResponse, error) {
+func (x *userServiceFetchStreamResponseClient) CloseAndRecv() (*UserList, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
-	m := new(UserResponse)
+	m := new(UserList)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -233,7 +233,7 @@ func _UserService_FetchStreamResponse_Handler(srv interface{}, stream grpc.Serve
 }
 
 type UserService_FetchStreamResponseServer interface {
-	SendAndClose(*UserResponse) error
+	SendAndClose(*UserList) error
 	Recv() (*UserRequest, error)
 	grpc.ServerStream
 }
@@ -242,7 +242,7 @@ type userServiceFetchStreamResponseServer struct {
 	grpc.ServerStream
 }
 
-func (x *userServiceFetchStreamResponseServer) SendAndClose(m *UserResponse) error {
+func (x *userServiceFetchStreamResponseServer) SendAndClose(m *UserList) error {
 	return x.ServerStream.SendMsg(m)
 }
 
