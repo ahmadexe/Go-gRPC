@@ -24,25 +24,30 @@ func main() {
 
 	client := pb.NewUserServiceClient(con)
 
-	chReq := make(chan *pb.UserRequest)
-	chRes := make(chan *pb.UserResponse)
+	var i int
+	fmt.Println("1. Get User\n2. Stream All Users\n3. Fetch Stream Response\n4. Get Users Bidirectional Stream")
+	fmt.Scan(&i)
 
-	// callToFetchStream(client)
-	// callToFetchResponseViaStream(client, []string{"1", "2", "3", "4"})
-	callToGetUsersBidirectionalStream(client, []string{"1", "2", "3", "4"}, chReq, chRes)
-
-	for data := range chReq {
-		fmt.Printf("Request: %v\n", data)
-	}
-
-
-	for data := range chRes {
-		fmt.Printf("Response: %v\n", data)
+	switch i {
+	case 1:
+		var id int
+		fmt.Println("Enter user id")
+		fmt.Scan(&id)
+		if id < 1 || id > 4 {
+			log.Fatal("Invalid user id")
+		}
+		callGetUser(client, id)
+	case 2:
+		callToFetchStream(client)
+	case 3:
+		callToFetchResponseViaStream(client, []string{"1", "2", "3", "4"})
+	case 4:
+		callToGetUsersBidirectionalStream(client, []string{"1", "2", "3", "4"})
 	}
 }
 
-func callGetUser(client pb.UserServiceClient) {
-	res, err := client.GetUser(context.TODO(), &pb.UserRequest{Id: "3"})
+func callGetUser(client pb.UserServiceClient, id int) {
+	res, err := client.GetUser(context.TODO(), &pb.UserRequest{Id: fmt.Sprintf("%d", id)})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -102,37 +107,37 @@ func callToFetchResponseViaStream(client pb.UserServiceClient, ids []string) {
 	log.Println("Stream completed")
 }
 
-func callToGetUsersBidirectionalStream(client pb.UserServiceClient, ids []string, chReq chan *pb.UserRequest, chRes chan *pb.UserResponse) {
+func callToGetUsersBidirectionalStream(client pb.UserServiceClient, ids []string) {
 	stream, err := client.GetUsersBidirectionalStream(context.TODO())
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	go func() {
-		for _, id := range ids {
-			err := stream.Send(&pb.UserRequest{Id: id})
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			chReq <- &pb.UserRequest{Id: id}
-			time.Sleep(2 * time.Second)
-		}
-		close(chReq)
-	}()
+	waitc := make(chan struct{})
 
 	go func() {
 		for {
 			res, err := stream.Recv()
 			if err == io.EOF {
-				close(chRes)
 				break
 			}
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			chRes <- &pb.UserResponse{Id: res.Id, Name: res.Name, Age: res.Age}
+			fmt.Printf("Received User: %v\n", res)
 		}
+		close(waitc)
 	}()
+
+	for _, id := range ids {
+		err := stream.Send(&pb.UserRequest{Id: id})
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("Sent request for user with id %v\n", id)
+		time.Sleep(2 * time.Second)
+	}
+	stream.CloseSend()
+	<-waitc
 }

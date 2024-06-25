@@ -36,7 +36,6 @@ func main() {
 
 	log.Printf("Server listening at %v", lis.Addr())
 
-	// Create a gRPC server
 	grpcServer := grpc.NewServer()
 	pb.RegisterUserServiceServer(grpcServer, &userServiceServer{})
 
