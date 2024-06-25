@@ -22,6 +22,10 @@ func main() {
 
 	client := pb.NewUserServiceClient(con)
 
+	callToFetchStream(client)
+}
+
+func callGetUser(client pb.UserServiceClient) {
 	res, err := client.GetUser(context.TODO(), &pb.UserRequest{Id: "3"})
 	if err != nil {
 		log.Fatal(err)
