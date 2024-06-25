@@ -24,8 +24,21 @@ func main() {
 
 	client := pb.NewUserServiceClient(con)
 
+	chReq := make(chan *pb.UserRequest)
+	chRes := make(chan *pb.UserResponse)
+
 	// callToFetchStream(client)
-	callToFetchResponseViaStream(client, []string{"1", "2", "3", "4"})
+	// callToFetchResponseViaStream(client, []string{"1", "2", "3", "4"})
+	callToGetUsersBidirectionalStream(client, []string{"1", "2", "3", "4"}, chReq, chRes)
+
+	for data := range chReq {
+		fmt.Printf("Request: %v\n", data)
+	}
+
+
+	for data := range chRes {
+		fmt.Printf("Response: %v\n", data)
+	}
 }
 
 func callGetUser(client pb.UserServiceClient) {
@@ -87,4 +100,39 @@ func callToFetchResponseViaStream(client pb.UserServiceClient, ids []string) {
 	}
 
 	log.Println("Stream completed")
+}
+
+func callToGetUsersBidirectionalStream(client pb.UserServiceClient, ids []string, chReq chan *pb.UserRequest, chRes chan *pb.UserResponse) {
+	stream, err := client.GetUsersBidirectionalStream(context.TODO())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go func() {
+		for _, id := range ids {
+			err := stream.Send(&pb.UserRequest{Id: id})
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			chReq <- &pb.UserRequest{Id: id}
+			time.Sleep(2 * time.Second)
+		}
+		close(chReq)
+	}()
+
+	go func() {
+		for {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				close(chRes)
+				break
+			}
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			chRes <- &pb.UserResponse{Id: res.Id, Name: res.Name, Age: res.Age}
+		}
+	}()
 }

@@ -89,6 +89,28 @@ func (s *userServiceServer) FetchStreamResponse(stream pb.UserService_FetchStrea
 				users = append(users, user)
 			}
 		}
-		
+
+	}
+}
+
+func (s *userServiceServer) GetUsersBidirectionalStream(stream pb.UserService_GetUsersBidirectionalStreamServer) error {
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Received Request for id %v\n", req.Id)
+		for _, user := range usersSlice {
+			if user.Id == req.Id {
+				if err := stream.Send(&pb.UserResponse{Id: user.Id, Name: user.Name, Age: user.Age}); err != nil {
+					return err
+				}
+				fmt.Printf("Sent Response for id %v\n", req.Id)
+			}
+		}
 	}
 }
