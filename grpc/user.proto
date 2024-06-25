@@ -6,7 +6,12 @@ package grpc;
 
 service UserService {
   rpc GetUser (UserRequest) returns (UserResponse) {}
+  rpc StreamAllUsers(NoParam) returns (stream UserResponse) {}
+  rpc FetchStreamResponse(stream UserRequest) returns (UserResponse) {}
+  rpc GetUsersBidirectionalStream(stream UserRequest) returns (stream UserResponse) {}
 }
+
+message NoParam {}
 
 message UserRequest {
     string id = 1;

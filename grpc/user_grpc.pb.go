@@ -19,7 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	UserService_GetUser_FullMethodName = "/grpc.UserService/GetUser"
+	UserService_GetUser_FullMethodName                     = "/grpc.UserService/GetUser"
+	UserService_StreamAllUsers_FullMethodName              = "/grpc.UserService/StreamAllUsers"
+	UserService_FetchStreamResponse_FullMethodName         = "/grpc.UserService/FetchStreamResponse"
+	UserService_GetUsersBidirectionalStream_FullMethodName = "/grpc.UserService/GetUsersBidirectionalStream"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -27,6 +30,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
 	GetUser(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*UserResponse, error)
+	StreamAllUsers(ctx context.Context, in *NoParam, opts ...grpc.CallOption) (UserService_StreamAllUsersClient, error)
+	FetchStreamResponse(ctx context.Context, opts ...grpc.CallOption) (UserService_FetchStreamResponseClient, error)
+	GetUsersBidirectionalStream(ctx context.Context, opts ...grpc.CallOption) (UserService_GetUsersBidirectionalStreamClient, error)
 }
 
 type userServiceClient struct {
@@ -46,11 +52,111 @@ func (c *userServiceClient) GetUser(ctx context.Context, in *UserRequest, opts .
 	return out, nil
 }
 
+func (c *userServiceClient) StreamAllUsers(ctx context.Context, in *NoParam, opts ...grpc.CallOption) (UserService_StreamAllUsersClient, error) {
+	stream, err := c.cc.NewStream(ctx, &UserService_ServiceDesc.Streams[0], UserService_StreamAllUsers_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &userServiceStreamAllUsersClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type UserService_StreamAllUsersClient interface {
+	Recv() (*UserResponse, error)
+	grpc.ClientStream
+}
+
+type userServiceStreamAllUsersClient struct {
+	grpc.ClientStream
+}
+
+func (x *userServiceStreamAllUsersClient) Recv() (*UserResponse, error) {
+	m := new(UserResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *userServiceClient) FetchStreamResponse(ctx context.Context, opts ...grpc.CallOption) (UserService_FetchStreamResponseClient, error) {
+	stream, err := c.cc.NewStream(ctx, &UserService_ServiceDesc.Streams[1], UserService_FetchStreamResponse_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &userServiceFetchStreamResponseClient{stream}
+	return x, nil
+}
+
+type UserService_FetchStreamResponseClient interface {
+	Send(*UserRequest) error
+	CloseAndRecv() (*UserResponse, error)
+	grpc.ClientStream
+}
+
+type userServiceFetchStreamResponseClient struct {
+	grpc.ClientStream
+}
+
+func (x *userServiceFetchStreamResponseClient) Send(m *UserRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *userServiceFetchStreamResponseClient) CloseAndRecv() (*UserResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(UserResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *userServiceClient) GetUsersBidirectionalStream(ctx context.Context, opts ...grpc.CallOption) (UserService_GetUsersBidirectionalStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &UserService_ServiceDesc.Streams[2], UserService_GetUsersBidirectionalStream_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &userServiceGetUsersBidirectionalStreamClient{stream}
+	return x, nil
+}
+
+type UserService_GetUsersBidirectionalStreamClient interface {
+	Send(*UserRequest) error
+	Recv() (*UserResponse, error)
+	grpc.ClientStream
+}
+
+type userServiceGetUsersBidirectionalStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *userServiceGetUsersBidirectionalStreamClient) Send(m *UserRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *userServiceGetUsersBidirectionalStreamClient) Recv() (*UserResponse, error) {
+	m := new(UserResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
 type UserServiceServer interface {
 	GetUser(context.Context, *UserRequest) (*UserResponse, error)
+	StreamAllUsers(*NoParam, UserService_StreamAllUsersServer) error
+	FetchStreamResponse(UserService_FetchStreamResponseServer) error
+	GetUsersBidirectionalStream(UserService_GetUsersBidirectionalStreamServer) error
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -60,6 +166,15 @@ type UnimplementedUserServiceServer struct {
 
 func (UnimplementedUserServiceServer) GetUser(context.Context, *UserRequest) (*UserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
+}
+func (UnimplementedUserServiceServer) StreamAllUsers(*NoParam, UserService_StreamAllUsersServer) error {
+	return status.Errorf(codes.Unimplemented, "method StreamAllUsers not implemented")
+}
+func (UnimplementedUserServiceServer) FetchStreamResponse(UserService_FetchStreamResponseServer) error {
+	return status.Errorf(codes.Unimplemented, "method FetchStreamResponse not implemented")
+}
+func (UnimplementedUserServiceServer) GetUsersBidirectionalStream(UserService_GetUsersBidirectionalStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetUsersBidirectionalStream not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
@@ -92,6 +207,79 @@ func _UserService_GetUser_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_StreamAllUsers_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(NoParam)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(UserServiceServer).StreamAllUsers(m, &userServiceStreamAllUsersServer{stream})
+}
+
+type UserService_StreamAllUsersServer interface {
+	Send(*UserResponse) error
+	grpc.ServerStream
+}
+
+type userServiceStreamAllUsersServer struct {
+	grpc.ServerStream
+}
+
+func (x *userServiceStreamAllUsersServer) Send(m *UserResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _UserService_FetchStreamResponse_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(UserServiceServer).FetchStreamResponse(&userServiceFetchStreamResponseServer{stream})
+}
+
+type UserService_FetchStreamResponseServer interface {
+	SendAndClose(*UserResponse) error
+	Recv() (*UserRequest, error)
+	grpc.ServerStream
+}
+
+type userServiceFetchStreamResponseServer struct {
+	grpc.ServerStream
+}
+
+func (x *userServiceFetchStreamResponseServer) SendAndClose(m *UserResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *userServiceFetchStreamResponseServer) Recv() (*UserRequest, error) {
+	m := new(UserRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _UserService_GetUsersBidirectionalStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(UserServiceServer).GetUsersBidirectionalStream(&userServiceGetUsersBidirectionalStreamServer{stream})
+}
+
+type UserService_GetUsersBidirectionalStreamServer interface {
+	Send(*UserResponse) error
+	Recv() (*UserRequest, error)
+	grpc.ServerStream
+}
+
+type userServiceGetUsersBidirectionalStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *userServiceGetUsersBidirectionalStreamServer) Send(m *UserResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *userServiceGetUsersBidirectionalStreamServer) Recv() (*UserRequest, error) {
+	m := new(UserRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -104,6 +292,23 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_GetUser_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "StreamAllUsers",
+			Handler:       _UserService_StreamAllUsers_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "FetchStreamResponse",
+			Handler:       _UserService_FetchStreamResponse_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "GetUsersBidirectionalStream",
+			Handler:       _UserService_GetUsersBidirectionalStream_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "grpc/user.proto",
 }

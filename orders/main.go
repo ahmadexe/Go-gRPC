@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"io"
 	"log"
 
 	"github.com/ahmadexe/go-grpc/data"
@@ -29,4 +30,26 @@ func main() {
 	user := data.User{Id: res.Id, Name: res.Name, Age: res.Age}
 
 	log.Printf("User: %v", user)
+}
+
+func callToFetchStream(client pb.UserServiceClient) {
+	stream, err := client.StreamAllUsers(context.TODO(), &pb.NoParam{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for {
+		res, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		user := data.User{Id: res.Id, Name: res.Name, Age: res.Age}
+		log.Printf("User: %v", user)
+	}
+
+	log.Println("Stream completed")
 }

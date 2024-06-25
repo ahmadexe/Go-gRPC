@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net"
+	"time"
 
 	"github.com/ahmadexe/go-grpc/data"
 	pb "github.com/ahmadexe/go-grpc/grpc"
@@ -51,4 +52,15 @@ func (s *userServiceServer) GetUser(ctx context.Context, in *pb.UserRequest) (*p
 	}
 
 	return nil, nil
+}
+
+func (s *userServiceServer) StreamAllUsers(in *pb.NoParam, stream pb.UserService_StreamAllUsersServer) error {
+	for _, user := range usersSlice {
+		if err := stream.Send(&pb.UserResponse{Id: user.Id, Name: user.Name, Age: user.Age}); err != nil {
+			return err
+		}
+		time.Sleep(2 * time.Second)
+	}
+
+	return nil
 }
