@@ -4,7 +4,7 @@ option go_package = "./grpc";
 
 package grpc;
 
-service Greeter {
+service UserService {
   rpc GetUser (UserRequest) returns (UserResponse) {}
 }
 
