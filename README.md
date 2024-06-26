@@ -1,5 +1,5 @@
 # gRPC
-It is an open-source remote procedure call framework, developed by Google. So as you might have guessed gRPC stands for google remote procedure call.
+gRPC (gRPC Remote Procedure Calls) is a high-performance, open-source framework developed by Google for building distributed systems and microservices. It uses HTTP/2 for transport, Protocol Buffers (protobufs) as the interface description language, and provides features such as authentication, load balancing, and bidirectional streaming. gRPC allows clients and servers to communicate transparently, making it easier to create scalable and efficient applications across various platforms and languages.
 
 ## Generating gRPC files
 1. Install protoc
